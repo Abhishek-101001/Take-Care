@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Take Care</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 22px; padding: 20px; background: #fdfdfd; }
+        h1 { font-size: 36px; color: #2c3e50; }
+        .medicine-card {
+            display: flex;
+            align-items: center;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: white;
+        }
+        .medicine-card img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-right: 20px;
+        }
+        .medicine-info { flex: 1; }
+        .medicine-name { font-size: 28px; font-weight: bold; }
+        .reminder-time { font-size: 24px; color: #555; margin-top: 6px; }
+        .taken-btn {
+            font-size: 22px;
+            padding: 15px 30px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Take Care</h1>
+    <div id="medicine-list">Loading your medicines...</div>
+
+    <script>
+        async function loadMedicines() {
+            const response = await fetch('/api/medicines/', {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'include'
+            });
+            const medicines = await response.json();
+            const container = document.getElementById('medicine-list');
+            container.innerHTML = '';
+
+            medicines.forEach(med => {
+                const card = document.createElement('div');
+                card.className = 'medicine-card';
+
+                const photoHtml = med.photo
+                    ? `<img src="${med.photo}" alt="${med.name}">`
+                    : '';
+
+                const times = med.reminders.map(r => r.time).join(', ');
+
+                card.innerHTML = `
+                    ${photoHtml}
+                    <div class="medicine-info">
+                        <div class="medicine-name">${med.name} - ${med.dosage}</div>
+                        <div class="reminder-time">Times: ${times}</div>
+                    </div>
+                    <button class="taken-btn" onclick="speakReminder('${med.name}', '${med.dosage}')">
+                        🔊 Hear reminder
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function speakReminder(name, dosage) {
+            const message = `It's time to take ${name}, ${dosage}`;
+            const utterance = new SpeechSynthesisUtterance(message);
+            utterance.rate = 0.9;
+            speechSynthesis.speak(utterance);
+        }
+
+        loadMedicines();
+    </script>
+</body>
+</html>

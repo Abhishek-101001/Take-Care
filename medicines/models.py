@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 # Create your models here.
 class Medicine(models.Model):
@@ -15,7 +16,7 @@ class Medicine(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f'(self.name)({self.dosage})'
+        return f'{self.name}({self.dosage})'
 
 
 class Reminder(models.Model):
@@ -31,4 +32,29 @@ class Reminder(models.Model):
         ordering =['time']
         
     def  __str__(self):
-        return f'{self.medicine.name}at{self.time:%I:%M %p}'
+        return f'{self.medicine.name} at {self.time:%I:%M %p}'
+    
+
+class DoseLog(models.Model):
+    STATUS_CHOICES = [
+        ('pending','Pending'),
+        ('taken','Taken'),
+        ('missed','Missed'),
+    ]
+    reminder = models.ForeignKey(
+        Reminder,
+        on_delete = models.CASCADE,
+        related_name ='logs',
+    )
+    scheduled_for = models.DateTimeField()
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    responded_at = models.DateTimeField(null=True, blank=True)
+    
+    
+    class Meta:
+        ordering = ['-scheduled_for']
+        
+        
+    def __str__(self):
+        return f'{self.reminder.medicine.name}-{self.scheduled_for:%d %b %I:%M %p}'
+    

@@ -1,5 +1,5 @@
 from  rest_framework import serializers
-from .models import Medicine,Reminder
+from .models import Medicine,Reminder,DoseLog
 
 
 
@@ -14,6 +14,12 @@ class MedicineSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Medicine
-        fields = ['id','name','dosage','instructions','photo','reminders','createda_at']
+        fields = ['id','name','dosage','instructions','photo','reminders','created_at']
         read_only_fields = ['user']
+
+class DoseLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DoseLog
+        fields = ['id','reminder','scheduled_for','status','responded_at']
+        read_only_fields = ['responded_at']
 

@@ -2,9 +2,12 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status,permissions
-from .models import Medicine
-from .serializer import MedicineSerializer
+from .models import Medicine,DoseLog
+from .serializer import MedicineSerializer,DoseLogSerializer
 from django.shortcuts import get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from rest_framework.decorators import api_view, permission_classes
 # Create your views here.
 class MedicineListCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -24,7 +27,7 @@ class MedicineListCreateView(APIView):
 
 
 class MedicineDetailView(APIView):
-    prmissions_classes = [permissions.IsAuthenticated]
+    prmission_classes = [permissions.IsAuthenticated]
     
     
     def get_object(self,pk,user):
@@ -47,3 +50,39 @@ class MedicineDetailView(APIView):
         medicine = self.get_object(pk, request.user)
         medicine.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    
+class DoseLogListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        dose_logs = DoseLog.objects.filter(reminder__medicine__user=request.user)
+        serializer = DoseLogSerializer(dose_logs, many=True)
+        return Response(serializer.data)
+    
+    
+@login_required
+def dashboard(request):
+    return render(request,'dashboard.html')
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def mark_taken(request,pk):
+    dose_log = get_object_or_404(DoseLog, pk=pk, reminder__medicine__user=request.user)
+    dose_log.status = 'taken'
+    dose_log.responded_at = timezone.now()
+    dose_log.save()
+    return Response({'status':'taken'})
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def mark_missed(request,pk):
+    dose_log = get_object_or_404(DoseLog, pk=pk, reminder__medicine__user=request.user)
+    dose_log.status = 'missed'
+    dose_log.responded_at = timezone.now()
+    dose_log.save()
+    return Response({'status':'missed'})
+
+

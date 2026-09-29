@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'medicines',
+    'django_celery_beat',
 ]
 
 MIDDLEWARE = [
@@ -56,7 +57,7 @@ ROOT_URLCONF = 'takecare.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR/'template'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -106,8 +107,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
-
 USE_I18N = True
 
 USE_TZ = True
@@ -131,3 +130,9 @@ MAILERS = {
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 TIME_ZONE = 'Asia/Kolkata'
+
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
