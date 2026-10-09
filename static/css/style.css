@@ -1,0 +1,104 @@
+body {
+    background: #f4f8f7;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 20px;
+    color: #1b2a33;
+}
+
+/* Top green bar */
+.tc-navbar {
+    background: #1f6f5c;
+    padding: 0.8rem 0;
+}
+.tc-navbar .navbar-brand {
+    color: #fff;
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+.tc-page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 1.5rem 0 1rem;
+}
+
+/* Medicine card */
+.medicine-card {
+    display: flex;
+    align-items: center;
+    border: 2px solid #d5e2de;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    background: #fff;
+}
+.medicine-card img {
+    width: 110px;
+    height: 110px;
+    object-fit: contain;
+    background: #fff;
+    border-radius: 12px;
+    margin-right: 24px;
+}
+.medicine-info {
+    flex: 1;
+}
+.medicine-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+.reminder-time {
+    font-size: 1.2rem;
+    color: #4a5a63;
+    margin-top: 6px;
+}
+
+/* Big buttons */
+.tc-btn {
+    min-height: 60px;
+    padding: 0.6rem 1.4rem;
+    font-size: 1.15rem;
+    font-weight: 600;
+    border-radius: 12px;
+}
+.tc-btn-green {
+    background: #1f6f5c;
+    border-color: #1f6f5c;
+    color: #fff;
+}
+.tc-btn-green:hover {
+    background: #17544a;
+    color: #fff;
+}
+
+/* Green "I took it" button */
+.tc-btn-taken {
+    background: #1e8e3e;
+    border-color: #1e8e3e;
+    color: #fff;
+}
+.tc-btn-taken:hover {
+    background: #166b2f;
+    color: #fff;
+}
+
+/* Buttons and badge on the right side of a dose card */
+.dose-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+    text-align: center;
+}
+
+/* Status badges */
+.status-badge {
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    color: #fff;
+}
+.status-taken   { background: #1e8e3e; }
+.status-missed  { background: #c62828; }
+.status-pending { background: #b26a00; }

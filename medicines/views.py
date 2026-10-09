@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status,permissions
 from .models import Medicine,DoseLog
-from .serializer import MedicineSerializer,DoseLogSerializer
+from .serializer import MedicineSerializer,DoseLogSerializer,ReminderSerializer
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
@@ -27,7 +27,7 @@ class MedicineListCreateView(APIView):
 
 
 class MedicineDetailView(APIView):
-    prmission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     
     
     def get_object(self,pk,user):
@@ -56,7 +56,8 @@ class DoseLogListView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request):
-        dose_logs = DoseLog.objects.filter(reminder__medicine__user=request.user)
+        today = timezone.localdate()
+        dose_logs = DoseLog.objects.filter(reminder__medicine__user=request.user,scheduled_for__date=today,).select_related('reminder__medicine').order_by('scheduled_for')
         serializer = DoseLogSerializer(dose_logs, many=True)
         return Response(serializer.data)
     
@@ -64,6 +65,11 @@ class DoseLogListView(APIView):
 @login_required
 def dashboard(request):
     return render(request,'dashboard.html')
+
+
+@login_required 
+def add_medicine(request):
+    return render(request,'add_medicine.html')
 
 
 @api_view(['POST'])
@@ -84,5 +90,18 @@ def mark_missed(request,pk):
     dose_log.responded_at = timezone.now()
     dose_log.save()
     return Response({'status':'missed'})
+
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def add_reminder(request, pk):
+    medicine = get_object_or_404(Medicine, pk=pk, user=request.user)
+    serializer = ReminderSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(medicine=medicine)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
