@@ -58,3 +58,18 @@ class DoseLog(models.Model):
     def __str__(self):
         return f'{self.reminder.medicine.name}-{self.scheduled_for:%d %b %I:%M %p}'
     
+
+class Caregiver(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='caregivers',
+    )
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    phone = models.CharField(max_length=20, blank=True)
+    
+
+    def __str__(self):
+        return f'{self.name} (caregiver of {self.user})'
+
