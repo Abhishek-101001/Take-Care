@@ -14,6 +14,11 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+from pathlib import Path
+import os
+from dotenv import load_dotenv
+load_dotenv(BASE_DIR / '.env')
+
 
 
 # Quick-start development settings - unsuitable for production
@@ -124,9 +129,17 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 
 MAILERS = {
     'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+        'OPTIONS': {
+            'host': 'smtp.gmail.com',
+            'use_tls':True,
+            'username':os.environ.get('GMAIL_ADDRESS'),
+            'password':os.environ.get('GMAIL_APP_PASSWORD'),
+        },
     },
 }
+
+DEFAULT_FROM_EMAIL = os.environ.get('GMAIL_ADDRESS')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
