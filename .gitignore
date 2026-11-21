@@ -14,3 +14,5 @@ media/
 # OS/editor junk
 .DS_Store
 .vscode/
+# Celery
+celerybeat-schedule

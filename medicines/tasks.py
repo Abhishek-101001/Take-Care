@@ -2,7 +2,7 @@ from celery import shared_task
 from django.utils import timezone
 from datetime import timedelta
 from .models import DoseLog
-
+from django.core.management import call_command
 
 
 @shared_task
@@ -13,4 +13,6 @@ def check_missed_doses():
     return f"Marked {count} dose(s) as missed"
 
 
-    
+@shared_task
+def create_today_doses_logs():
+    call_command('generate_doselogs')
