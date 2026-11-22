@@ -5,10 +5,13 @@ from celery import shared_task
 from django.core.mail import send_mail
 from django.core.management import call_command
 from django.utils import timezone
-
+from django.conf import settings
+from twilio.rest import Client
 from .models import DoseLog
 
 logger = logging.getLogger(__name__)
+
+TRIAL_CALL_URL = 'https://webhooks.twilio.com/v1/Voice/Template/voice_text_to_speech'
 
 
 def send_missed_alert(dose):
@@ -29,6 +32,22 @@ def send_missed_alert(dose):
         from_email=None,
         recipient_list=emails,
     )
+
+def send_missed_call(dose):
+    user = dose.reminder.medicine.user
+    phones = list(user.caregivers.values_list('phone', flat=True))
+    if not phones:
+        return  # no caregiver saved for this user
+
+    client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+    for phone in phones:
+        if not phone:
+            continue  # skip a caregiver with an empty phone field
+        client.calls.create(
+            to=phone,
+            from_=settings.TWILIO_PHONE_NUMBER,
+            url=TRIAL_CALL_URL,
+        )
 
 
 @shared_task
