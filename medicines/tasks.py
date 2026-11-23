@@ -65,6 +65,10 @@ def check_missed_doses():
             send_missed_alert(dose)
         except Exception:
             logger.exception('Could not send missed-dose email')
+        try:
+            send_missed_call(dose)
+        except Exception:
+            logger.exception('Could not send missed-dose call')
     return f'Marked {len(overdue)} dose(s) as missed'
 
 
