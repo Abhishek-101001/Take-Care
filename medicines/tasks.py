@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.conf import settings
 from twilio.rest import Client
 from .models import DoseLog
+from .utils import clean_phone
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +41,10 @@ def send_missed_call(dose):
         return  # no caregiver saved for this user
 
     client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-    for phone in phones:
+    for raw_phone in phones:
+        phone = clean_phone(raw_phone)
         if not phone:
+            logger.warning('Skipping an invalid caregiver phone number for dose %s', dose.id)
             continue  # skip a caregiver with an empty phone field
         client.calls.create(
             to=phone,
