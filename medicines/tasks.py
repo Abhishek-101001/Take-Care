@@ -7,7 +7,7 @@ from django.core.management import call_command
 from django.utils import timezone
 from django.conf import settings
 from twilio.rest import Client
-from .models import DoseLog
+from .models import DoseLog, Profile
 from .utils import clean_phone
 
 logger = logging.getLogger(__name__)
@@ -52,6 +52,21 @@ def send_missed_call(dose):
             url=TRIAL_CALL_URL,
         )
 
+def send_owner_call(dose):
+    user = dose.reminder.medicine.user
+    raw_phone = Profile.objects.filter(user=user).values_list('phone', flat=True).first()
+    phone = clean_phone(raw_phone)
+    if not phone:
+        logger.warning('No usable owner phone for dose %s', dose.id)
+        return
+
+    client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+    client.calls.create(
+        to=phone,
+        from_=settings.TWILIO_PHONE_NUMBER,
+        url=TRIAL_CALL_URL,
+    )
+
 
 @shared_task
 def check_missed_doses():
@@ -73,6 +88,25 @@ def check_missed_doses():
         except Exception:
             logger.exception('Could not send missed-dose call')
     return f'Marked {len(overdue)} dose(s) as missed'
+
+
+@shared_task
+def send_owner_reminders():
+    now = timezone.now()
+    window_start = now - timedelta(minutes=15)
+    due = list(
+        DoseLog.objects.filter(
+            status='pending',
+            scheduled_for__lte=now,
+            scheduled_for__gt=window_start,
+        ).select_related('reminder__medicine__user')
+    )
+    for dose in due:
+        try:
+            send_owner_call(dose)
+        except Exception:
+            logger.exception('Could not place owner reminder call')
+    return f'Called owners for {len(due)} dose(s)'
 
 
 @shared_task
