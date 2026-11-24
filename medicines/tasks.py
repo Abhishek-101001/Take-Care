@@ -11,6 +11,7 @@ from .models import DoseLog, Profile
 from .utils import clean_phone
 
 logger = logging.getLogger(__name__)
+ALERT_MAX_LATE = timedelta(hours=2)
 
 TRIAL_CALL_URL = 'https://webhooks.twilio.com/v1/Voice/Template/voice_text_to_speech'
 
@@ -71,6 +72,7 @@ def send_owner_call(dose):
 @shared_task
 def check_missed_doses():
     threshold = timezone.now() - timedelta(minutes=15)
+    stale_cutoff = timezone.now() - ALERT_MAX_LATE
     overdue = list(
         DoseLog.objects.filter(status='pending', scheduled_for__lte=threshold)
         .select_related('reminder__medicine__user')
@@ -79,6 +81,9 @@ def check_missed_doses():
         dose.status = 'missed'
         dose.responded_at = timezone.now()
         dose.save()
+        if dose.scheduled_for < stale_cutoff:
+            logger.warning('Dose %s is too old for alerts ; marked missed only',dose.id)
+            continue
         try:
             send_missed_alert(dose)
         except Exception:
