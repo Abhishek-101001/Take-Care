@@ -25,6 +25,6 @@ class CaregiverAdmin(admin.ModelAdmin):
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'phone')
+    list_display = ('user', 'role','phone')
 
 
