@@ -16,6 +16,8 @@ class Command(BaseCommand):
             scheduled_dt = timezone.make_aware(
                 timezone.datetime.combine(today, reminder.time)
             )
+            if scheduled_dt <= timezone.now():
+                continue
             _, created = DoseLog.objects.get_or_create(
                 reminder = reminder,
                 scheduled_for = scheduled_dt,
