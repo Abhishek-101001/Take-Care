@@ -16,3 +16,4 @@ media/
 .vscode/
 # Celery
 celerybeat-schedule
+celerybeat-schedule*
