@@ -16,19 +16,18 @@
     </nav>
 
     <main class="container pb-5" style="max-width: 500px;">
-        <h1 class="tc-page-title">Welcome</h1>
-        <p class="mb-4">Please log in to see your medicines.</p>
-
+        <h1 class="tc-page-title">{% if role == 'caregiver' %}Caregiver login{% else %}Owner login{% endif %}</h1>
+        <p class="mb-4">{% if role == 'caregiver' %}Log in to look after your family.{% else %}Please log in to see your medicines.{% endif %}</p>
+        
         <form method="post">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ next }}">
 
-            {% if form.errors %}
+            {% if form.non_field_errors %}
                 <div class="alert alert-danger">
-                    Wrong username or password. Please try again.
+                    {% for error in form.non_field_errors %}{{ error }}<br>{% endfor %}
                 </div>
-            {% endif %}
-
+           {% endif %}
             <div class="mb-4">
                 <label for="username" class="form-label fs-5 fw-bold">Username</label>
                 <input type="text" id="username" name="username"
@@ -45,6 +44,11 @@
 
             <button type="submit" class="btn tc-btn tc-btn-taken w-100">Log in</button>
         </form>
+        <p class="mt-4">
+            New here?
+            <a href="{% if role == 'caregiver' %}{% url 'signup-caregiver' %}{% else %}{% url 'signup-owner' %}{% endif %}">Create an account</a>
+            · <a href="{% url 'welcome' %}">Go back</a>
+        </p>
     </main>
 </body>
 </html>

@@ -18,9 +18,9 @@ from django.contrib import admin
 from django.urls import path,include
 from django.conf import settings
 from django.conf.urls.static import static
-from medicines.views import dashboard,add_medicine,welcome,signup
+from medicines.views import dashboard,add_medicine,welcome,signup,RoleLoginView
 from django.contrib.auth import views as auth_views
-
+from django.views.generic import RedirectView
 
 
 urlpatterns = [
@@ -31,7 +31,9 @@ urlpatterns = [
     path('api-auth/',include('rest_framework.urls')),
     path('add-medicine/', add_medicine, name='add-medicine'),
     path('',dashboard, name='dashboard'),
-    path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
+    path('login/owner/', RoleLoginView.as_view(role='owner'), name='login-owner'),
+    path('login/caregiver/', RoleLoginView.as_view(role='caregiver'), name='login-caregiver'),
+    path('login/', RedirectView.as_view(pattern_name='welcome'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('welcome/', welcome, name='welcome'),
 ] + static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)

@@ -18,11 +18,11 @@
     <main class="container pb-5" style="max-width: 500px;">
         <h1 class="tc-page-title">Welcome</h1>
         <p class="mb-4">Who are you?</p>
-
-        <a href="{% url 'login' %}" class="btn tc-btn tc-btn-taken w-100 mb-3 py-3 fs-5">
+        
+        <a href="{% url 'login-owner' %}" class="btn tc-btn tc-btn-taken w-100 mb-3 py-3 fs-5">
             I take medicines (Owner)
         </a>
-        <a href="{% url 'login' %}" class="btn btn-outline-secondary w-100 py-3 fs-5">
+        <a href="{% url 'login-caregiver' %}" class="btn btn-outline-secondary w-100 py-3 fs-5">
             I care for someone (Caregiver)
         </a>
     </main>

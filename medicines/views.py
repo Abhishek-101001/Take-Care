@@ -4,12 +4,13 @@ from .forms import SignUpForm
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status,permissions
-from .models import Medicine,DoseLog
+from .models import Medicine,DoseLog,Profile
 from .serializer import MedicineSerializer,DoseLogSerializer,ReminderSerializer
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
+from django.contrib.auth.views import LoginView
 # Create your views here.
 class MedicineListCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -122,3 +123,19 @@ def signup(request, role):
     return render(request, 'signup.html', {'form': form, 'role': role})
 
 
+class RoleLoginView(LoginView):
+    template_name = 'login.html'
+    role = None
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['role'] = self.role
+        return context
+
+    def form_valid(self, form):
+        user = form.get_user()
+        user_role = Profile.objects.filter(user=user).values_list('role', flat=True).first() or 'owner'
+        if user_role != self.role:
+            form.add_error(None, f'This is a {user_role} account. Please use the {user_role} login page.')
+            return self.form_invalid(form)
+        return super().form_valid(form)
