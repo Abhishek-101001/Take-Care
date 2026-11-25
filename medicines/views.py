@@ -1,4 +1,6 @@
-from django.shortcuts import render
+from django.shortcuts import render,redirect
+from django.contrib.auth import login
+from .forms import SignUpForm
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status,permissions
@@ -106,5 +108,17 @@ def add_reminder(request, pk):
 
 def welcome(request):
     return render(request, 'welcome.html')
+
+
+def signup(request, role):
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            user = form.save(role=role)
+            login(request, user)
+            return redirect('dashboard')
+    else:
+        form = SignUpForm()
+    return render(request, 'signup.html', {'form': form, 'role': role})
 
 

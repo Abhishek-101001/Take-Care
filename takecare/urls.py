@@ -18,12 +18,14 @@ from django.contrib import admin
 from django.urls import path,include
 from django.conf import settings
 from django.conf.urls.static import static
-from medicines.views import dashboard,add_medicine,welcome
+from medicines.views import dashboard,add_medicine,welcome,signup
 from django.contrib.auth import views as auth_views
 
 
 
 urlpatterns = [
+    path('signup/owner/', signup, {'role': 'owner'}, name='signup-owner'),
+    path('signup/caregiver/', signup, {'role': 'caregiver'}, name='signup-caregiver'),
     path('admin/', admin.site.urls),
     path('api/',include('medicines.urls')),
     path('api-auth/',include('rest_framework.urls')),
