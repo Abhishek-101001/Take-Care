@@ -88,6 +88,31 @@ class Profile(models.Model):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='owner')
     phone = models.CharField(max_length=20, blank=True)
 
-    
+
     def __str__(self):
         return f'Profile of {self.user}'
+
+
+
+class CareLink(models.Model):
+    caregiver = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='parent_links',
+    )
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='caregiver_links',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['caregiver', 'owner'], name='unique_care_link'
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.caregiver} cares for {self.owner}'

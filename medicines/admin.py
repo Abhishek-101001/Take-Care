@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Medicine,Reminder,DoseLog,Caregiver,Profile
+from .models import Medicine,Reminder,DoseLog,Caregiver,Profile,CareLink
 
 # Register your models here.
 class ReminderInline(admin.TabularInline):
@@ -28,3 +28,6 @@ class ProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'role','phone')
 
 
+@admin.register(CareLink)
+class CareLinkAdmin(admin.ModelAdmin):
+    list_display = ('caregiver', 'owner', 'created_at')
