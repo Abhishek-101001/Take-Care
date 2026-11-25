@@ -156,9 +156,9 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
 
-LOGIN_URL = 'login'
+LOGIN_URL = 'welcome'
 LOGIN_REDIRECT_URL = 'dashboard'
-LOGOUT_REDIRECT_URL = 'login'
+LOGOUT_REDIRECT_URL = 'welcome'
 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

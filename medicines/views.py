@@ -104,4 +104,7 @@ def add_reminder(request, pk):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+def welcome(request):
+    return render(request, 'welcome.html')
+
 
