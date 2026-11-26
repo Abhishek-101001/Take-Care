@@ -157,7 +157,7 @@ CELERY_TIMEZONE = TIME_ZONE
 
 
 LOGIN_URL = 'welcome'
-LOGIN_REDIRECT_URL = 'dashboard'
+LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'welcome'
 
 

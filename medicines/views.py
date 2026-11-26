@@ -117,7 +117,7 @@ def signup(request, role):
         if form.is_valid():
             user = form.save(role=role)
             login(request, user)
-            return redirect('dashboard')
+            return redirect('home')
     else:
         form = SignUpForm()
     return render(request, 'signup.html', {'form': form, 'role': role})
@@ -136,6 +136,20 @@ class RoleLoginView(LoginView):
         user = form.get_user()
         user_role = Profile.objects.filter(user=user).values_list('role', flat=True).first() or 'owner'
         if user_role != self.role:
-            form.add_error(None, f'This is a {user_role} account. Please use the {user_role} login page.')
+            article = 'an' if user_role == 'owner' else 'a'
+            form.add_error(None, f'This is {article} {user_role} account. Please use the {user_role} login page.')
             return self.form_invalid(form)
         return super().form_valid(form)
+
+
+@login_required
+def home(request):
+    role = Profile.objects.filter(user=request.user).values_list('role', flat=True).first() or 'owner'
+    if role == 'caregiver':
+        return redirect('caregiver-home')
+    return redirect('dashboard')
+
+
+@login_required
+def caregiver_home(request):
+    return render(request, 'caregiver_home.html')

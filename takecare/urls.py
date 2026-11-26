@@ -18,12 +18,14 @@ from django.contrib import admin
 from django.urls import path,include
 from django.conf import settings
 from django.conf.urls.static import static
-from medicines.views import dashboard,add_medicine,welcome,signup,RoleLoginView
+from medicines.views import dashboard,add_medicine,welcome,signup,RoleLoginView,home,caregiver_home
 from django.contrib.auth import views as auth_views
 from django.views.generic import RedirectView
 
 
 urlpatterns = [
+    path('home/', home, name='home'),
+    path('caregiver/', caregiver_home, name='caregiver-home'),
     path('signup/owner/', signup, {'role': 'owner'}, name='signup-owner'),
     path('signup/caregiver/', signup, {'role': 'caregiver'}, name='signup-caregiver'),
     path('admin/', admin.site.urls),
