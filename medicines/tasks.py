@@ -7,7 +7,7 @@ from django.core.management import call_command
 from django.utils import timezone
 from django.conf import settings
 from twilio.rest import Client
-from .models import DoseLog, Profile
+from .models import DoseLog, Profile, CaregiverAlert
 from .utils import clean_phone
 
 logger = logging.getLogger(__name__)
@@ -108,6 +108,106 @@ def link_turn(scheduled_for, link, previous_end=None):
     max_calls = max(1, min(link.max_calls, HARD_MAX_CALLS))
     end = start + timedelta(minutes=link.call_interval * max_calls)
     return start, end
+
+
+def call_number(raw_phone):
+    phone = clean_phone(raw_phone)
+    if not phone:
+        return False
+    client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+    client.calls.create(
+        to=phone,
+        from_=settings.TWILIO_PHONE_NUMBER,
+        url=TRIAL_CALL_URL,
+    )
+    return True
+
+
+def send_caregiver_email(dose, caregiver):
+    medicine = dose.reminder.medicine
+    owner = medicine.user
+    when = timezone.localtime(dose.scheduled_for).strftime('%I:%M %p')
+    send_mail(
+        subject=f'Missed dose: {medicine.name}',
+        message=(
+            f'{owner.first_name or owner.get_username()} has not taken {medicine.name} '
+            f'({medicine.dosage}) that was due at {when}.\n\n'
+            'Please check on them.'
+        ),
+        from_email=None,
+        recipient_list=[caregiver.email],
+    )
+
+
+def run_turn(dose, link, alert, now, total_calls):
+    did = 0
+    caregiver = link.caregiver
+
+    if link.email_alerts and alert.emailed_at is None:
+        if caregiver.email:
+            try:
+                send_caregiver_email(dose, caregiver)
+            except Exception:
+                logger.exception('Could not send caregiver email')
+        alert.emailed_at = now
+        did += 1
+
+    if link.call_alerts:
+        max_calls = min(link.max_calls, HARD_MAX_CALLS)
+        spaced = alert.last_called_at is None or now >= (
+            alert.last_called_at + timedelta(minutes=link.call_interval) - CALL_TOLERANCE
+        )
+        if alert.calls_made < max_calls and spaced and total_calls < HARD_TOTAL_CALLS:
+            profile = getattr(caregiver, 'profile', None)
+            try:
+                call_number(profile.phone if profile else '')
+            except Exception:
+                logger.exception('Could not place caregiver call')
+            alert.calls_made += 1
+            alert.last_called_at = now
+            did += 1
+
+    alert.save()
+    return did
+
+
+@shared_task
+def send_caregiver_alerts():
+    now = timezone.now()
+    doses = (
+        DoseLog.objects.filter(
+            status__in=['pending', 'missed'],
+            scheduled_for__lte=now,
+            scheduled_for__gt=now - ALERT_MAX_LATE,
+            reminder__medicine__user__caregiver_links__isnull=False,
+        )
+        .distinct()
+        .select_related('reminder__medicine__user')
+    )
+
+    actions = 0
+    for dose in doses:
+        owner = dose.reminder.medicine.user
+        links = list(owner.caregiver_links.select_related('caregiver__profile'))
+        alerts = {a.link_id: a for a in dose.caregiver_alerts.all()}
+        if any(a.response for a in alerts.values()):
+            continue  # a caregiver responded, so everything stops
+        total_calls = dose.owner_calls + sum(a.calls_made for a in alerts.values())
+
+        previous_end = None
+        for link in links:
+            start, end = link_turn(dose.scheduled_for, link, previous_end)
+            previous_end = end
+            if now < start:
+                break      # not this caregiver's time yet, and later ones wait too
+            if now >= end:
+                continue   # this turn is over, so the next caregiver may be up
+            alert = alerts.get(link.id)
+            if alert is None:
+                alert = CaregiverAlert.objects.create(dose=dose, link=link)
+            actions += run_turn(dose, link, alert, now, total_calls)
+            break          # only one caregiver at a time
+    return f'Caregiver actions: {actions}'
 
 
 @shared_task
