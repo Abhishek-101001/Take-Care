@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 ALERT_MAX_LATE = timedelta(hours=2)
 HARD_MAX_CALLS = 20
 CALL_TOLERANCE = timedelta(seconds=10)
+HARD_TOTAL_CALLS = 30
 
 TRIAL_CALL_URL = 'https://webhooks.twilio.com/v1/Voice/Template/voice_text_to_speech'
 
@@ -95,6 +96,18 @@ def check_missed_doses():
         except Exception:
             logger.exception('Could not send missed-dose call')
     return f'Marked {len(overdue)} dose(s) as missed'
+
+
+def link_turn(scheduled_for, link, previous_end=None):
+    """When does this caregiver's turn start and end for a dose due at scheduled_for?"""
+    start = scheduled_for + timedelta(minutes=link.notify_after_minutes)
+    if previous_end is not None and previous_end > start:
+        start = previous_end
+    if not (link.call_alerts or link.email_alerts):
+        return start, start  # nothing to send, so the turn is empty
+    max_calls = max(1, min(link.max_calls, HARD_MAX_CALLS))
+    end = start + timedelta(minutes=link.call_interval * max_calls)
+    return start, end
 
 
 @shared_task
