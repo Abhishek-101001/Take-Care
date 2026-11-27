@@ -74,19 +74,28 @@ def send_owner_call(dose):
 
 @shared_task
 def check_missed_doses():
-    threshold = timezone.now() - timedelta(minutes=15)
-    stale_cutoff = timezone.now() - ALERT_MAX_LATE
-    overdue = list(
-        DoseLog.objects.filter(status='pending', scheduled_for__lte=threshold)
-        .select_related('reminder__medicine__user')
-    )
-    for dose in overdue:
+    now = timezone.now()
+    stale_cutoff = now - ALERT_MAX_LATE
+    pending = DoseLog.objects.filter(
+        status='pending', scheduled_for__lte=now
+    ).select_related('reminder__medicine__user__profile')
+
+    marked = 0
+    for dose in pending:
+        owner = dose.reminder.medicine.user
+        profile = getattr(owner, 'profile', None)
+        missed_after = profile.missed_after_minutes if profile else 15
+        if now < dose.scheduled_for + timedelta(minutes=missed_after):
+            continue  # not late enough yet
         dose.status = 'missed'
-        dose.responded_at = timezone.now()
+        dose.responded_at = now
         dose.save()
+        marked += 1
         if dose.scheduled_for < stale_cutoff:
-            logger.warning('Dose %s is too old for alerts ; marked missed only',dose.id)
+            logger.warning('Dose %s is too old for alerts; marked missed only', dose.id)
             continue
+        if owner.caregiver_links.exists():
+            continue  # linked caregivers are handled by send_caregiver_alerts
         try:
             send_missed_alert(dose)
         except Exception:
@@ -94,8 +103,9 @@ def check_missed_doses():
         try:
             send_missed_call(dose)
         except Exception:
-            logger.exception('Could not send missed-dose call')
-    return f'Marked {len(overdue)} dose(s) as missed'
+            logger.exception('Could not place missed-dose call')
+    return f'Marked {marked} dose(s) as missed'
+
 
 
 def link_turn(scheduled_for, link, previous_end=None):
