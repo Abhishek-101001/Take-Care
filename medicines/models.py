@@ -49,6 +49,8 @@ class DoseLog(models.Model):
     scheduled_for = models.DateTimeField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     responded_at = models.DateTimeField(null=True, blank=True)
+    owner_calls = models.PositiveSmallIntegerField(default=0)
+    last_owner_call_at = models.DateTimeField(null=True, blank=True)
     
     
     class Meta:
@@ -87,6 +89,11 @@ class Profile(models.Model):
     )
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='owner')
     phone = models.CharField(max_length=20, blank=True)
+    remind_owner = models.BooleanField(default=True)
+    owner_call_interval = models.PositiveSmallIntegerField(default=5)
+    owner_max_calls = models.PositiveSmallIntegerField(default=3)
+    missed_after_minutes = models.PositiveSmallIntegerField(default=15)
+
 
 
     def __str__(self):
@@ -95,6 +102,10 @@ class Profile(models.Model):
 
 
 class CareLink(models.Model):
+    PRIORITY_CHOICES = [
+        (1, 'Caregiver'),
+        (2, 'Alternate caregiver'),
+    ]
     caregiver = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -105,14 +116,52 @@ class CareLink(models.Model):
         on_delete=models.CASCADE,
         related_name='caregiver_links',
     )
+    priority = models.PositiveSmallIntegerField(choices=PRIORITY_CHOICES, default=1)
+    notify_after_minutes = models.PositiveSmallIntegerField(default=15)
+    call_interval = models.PositiveSmallIntegerField(default=5)
+    max_calls = models.PositiveSmallIntegerField(default=3)
+    call_alerts = models.BooleanField(default=True)
+    email_alerts = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ['priority', 'id']
         constraints = [
             models.UniqueConstraint(
                 fields=['caregiver', 'owner'], name='unique_care_link'
+            ),
+            models.UniqueConstraint(
+                fields=['owner', 'priority'], name='one_caregiver_per_level'
             ),
         ]
 
     def __str__(self):
         return f'{self.caregiver} cares for {self.owner}'
+
+
+class CaregiverAlert(models.Model):
+    RESPONSE_CHOICES = [
+        ('informed', "I'm informed"),
+        ('handling', "I'll manage it now"),
+    ]
+    dose = models.ForeignKey(
+        DoseLog, on_delete=models.CASCADE, related_name='caregiver_alerts'
+    )
+    link = models.ForeignKey(
+        CareLink, on_delete=models.CASCADE, related_name='alerts'
+    )
+    calls_made = models.PositiveSmallIntegerField(default=0)
+    last_called_at = models.DateTimeField(null=True, blank=True)
+    emailed_at = models.DateTimeField(null=True, blank=True)
+    response = models.CharField(max_length=10, choices=RESPONSE_CHOICES, blank=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['dose', 'link'], name='unique_alert_per_dose_link'),
+        ]
+
+    def __str__(self):
+        return f'Alert for {self.dose} to {self.link.caregiver}'
+
+        
