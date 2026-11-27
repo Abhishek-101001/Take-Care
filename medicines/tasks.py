@@ -12,6 +12,8 @@ from .utils import clean_phone
 
 logger = logging.getLogger(__name__)
 ALERT_MAX_LATE = timedelta(hours=2)
+HARD_MAX_CALLS = 20
+CALL_TOLERANCE = timedelta(seconds=10)
 
 TRIAL_CALL_URL = 'https://webhooks.twilio.com/v1/Voice/Template/voice_text_to_speech'
 
@@ -98,20 +100,40 @@ def check_missed_doses():
 @shared_task
 def send_owner_reminders():
     now = timezone.now()
-    window_start = now - timedelta(minutes=15)
-    due = list(
-        DoseLog.objects.filter(
-            status='pending',
-            scheduled_for__lte=now,
-            scheduled_for__gt=window_start,
-        ).select_related('reminder__medicine__user')
-    )
-    for dose in due:
+    candidates = DoseLog.objects.filter(
+        status='pending',
+        scheduled_for__lte=now,
+        scheduled_for__gt=now - ALERT_MAX_LATE,
+    ).select_related('reminder__medicine__user__profile')
+
+    called = 0
+    for dose in candidates:
+        profile = getattr(dose.reminder.medicine.user, 'profile', None)
+        remind = profile.remind_owner if profile else True
+        interval = profile.owner_call_interval if profile else 5
+        max_calls = min(profile.owner_max_calls if profile else 3, HARD_MAX_CALLS)
+        missed_after = profile.missed_after_minutes if profile else 15
+
+        if not remind:
+            continue
+        if now >= dose.scheduled_for + timedelta(minutes=missed_after):
+            continue  # too late for reminders; the missed check takes over
+        if dose.owner_calls >= max_calls:
+            continue
+        if dose.last_owner_call_at and now < (
+            dose.last_owner_call_at + timedelta(minutes=interval) - CALL_TOLERANCE
+        ):
+            continue
+
         try:
             send_owner_call(dose)
         except Exception:
             logger.exception('Could not place owner reminder call')
-    return f'Called owners for {len(due)} dose(s)'
+        dose.owner_calls += 1
+        dose.last_owner_call_at = now
+        dose.save(update_fields=['owner_calls', 'last_owner_call_at'])
+        called += 1
+    return f'Called owners for {called} dose(s)'
 
 
 @shared_task
